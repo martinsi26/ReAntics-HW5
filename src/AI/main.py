@@ -1,5 +1,13 @@
 import numpy as np
 
+
+##
+#initializeWeights
+#
+#Description: Randomly sets up weights for all of the hidden notes and output nodes
+#
+#Return: All of the weights and baises for the nodes
+##
 def initializeWeights():
     num_inputs = 4
     num_hidden = 8
@@ -12,17 +20,68 @@ def initializeWeights():
 
     return weights_hidden, bias_hidden, weights_output, bias_output
 
+##
+#sigmoid
+#
+#Description: Performs the sigmoid function calculation on nodes
+#
+#Parameters:
+#   x - the value calculted for a node
+#
+#Returns: The result of the sigmoid function on a nodes value
+##
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+##
+#sigmoid_derivative
+#
+#Description: Performs the derivative of the sigmoid function calculation on nodes
+#
+#Parameters:
+#   x - the value calculated for a node
+#
+#Result: The result of the derivative sigmoid function on a nodes value
+##
 def sigmoid_derivative(x):
     return x * (1 - x)
 
+##
+#feedforward
+#
+#Description: Finds the values of all the hidden nodes and output nodes
+#
+#Parameters:
+#   inputs - An array of input values for the network
+#   weights_hidden - An array of weights for the hidden nodes
+#   bias_hidden - An array of weights for the biases of the hidden nodes
+#   weights_output - An array of weights for the output nodes
+#   bias_output - An array of weights for the biases of the output nodes
+#
+#Returns: The results of each node in the network (hidden nodes and output nodes)
+##
 def feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output):
     hidden_answer = sigmoid(np.dot(weights_hidden, inputs) + bias_hidden)
     output_answer = sigmoid(np.dot(weights_output, hidden_answer) + bias_output)
     return hidden_answer, output_answer
 
+##
+#backpropagation
+#
+#Description: A function that calculates error of the network and recalculates the weights
+#
+#Parameters:
+#   inputs - An array of input values for the network
+#   target - The desired output of the network
+#   weights_hidden - An array of weights for the hidden nodes
+#   bias_hidden - An array of weights for the biases of the hidden nodes
+#   weights_output - An array of weights for the output nodes
+#   bias_output - An array of weights for the biases of the output nodes
+#   learning_rate - A value that determins how quickly the network learns
+#
+#Returns: All of the updates weights for each node, including their baises, 
+#and the error of the network (how far off the final value is from our target value)
+##
 def backpropagation(inputs, target, weights_hidden, bias_hidden, weights_output, bias_output, learning_rate):
     # Forward pass
     predicted_hidden, predicted_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
