@@ -1,3 +1,4 @@
+import random
 import numpy as np
 
 
@@ -105,8 +106,27 @@ def backpropagation(inputs, target, weights_hidden, bias_hidden, weights_output,
 
 # --- Main test ---
 if __name__ == "__main__":
-    inputs = np.array([0.5, -0.3, 0.8, 0.1]) # example input
-    target = np.array([1.0]) # example target output
+    examples = [
+        ([0, 0, 0, 0], [0]),
+        ([0, 0, 0, 1], [1]),
+        ([0, 0, 1, 0], [0]),
+        ([0, 0, 1, 1], [1]),
+        ([0, 1, 0, 0], [0]),
+        ([0, 1, 0, 1], [1]),
+        ([0, 1, 1, 0], [0]),
+        ([0, 1, 1, 1], [1]),
+        ([1, 0, 0, 0], [1]),
+        ([1, 0, 0, 1], [1]),
+        ([1, 0, 1, 0], [1]),
+        ([1, 0, 1, 1], [1]),
+        ([1, 1, 0, 0], [0]),
+        ([1, 1, 0, 1], [0]),
+        ([1, 1, 1, 0], [0]),
+        ([1, 1, 1, 1], [1])
+    ]
+    
+    # inputs = np.array([0.5, -0.3, 0.8, 0.1]) # example input
+    # target = np.array([1.0]) # example target output
 
     # Initialize Network
     weights_hidden, bias_hidden, weights_output, bias_output = initializeWeights()
@@ -114,15 +134,32 @@ if __name__ == "__main__":
     # Training loop
     totalError = 0
     learning_rate = 0.1
-    epochs = 1
-    for i in range(epochs):
-        for i in range()
+    epoch = 0
+    average_error = 1.0
+
+    # Train until we reach a 0.05 average error for an epoch
+    while average_error > 0.05:
+        # Radnomly pick 10 samples per epoch
+        selected = random.sample(examples, 10)
+        inputs_array = np.array([i for i, _ in selected])
+        targets_array = np.array([t for _, t in selected])
+
+        # Reset error accumulator
+        total_error = 0.0
+
+        # Train on 10 samples
+        for inputs, target in zip(inputs_array, targets_array):
             weights_hidden, bias_hidden, weights_output, bias_output, error = backpropagation(
                 inputs, target, weights_hidden, bias_hidden, weights_output, bias_output, learning_rate
             )
-            totalError += error
+            total_error += np.abs(error[0])
+
+        # Compute average error for the epoch
+        average_error = total_error / 10
+        epoch += 1
+        print(f"Epoch {epoch} - Average Error: {average_error:.4f}")
     
-    # Final output
-    _, network_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
-    print("\n=== Final Network Output ===")
-    print(network_output)
+    # # Final output
+    # _, network_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
+    # print("\n=== Final Network Output ===")
+    # print(network_output)
