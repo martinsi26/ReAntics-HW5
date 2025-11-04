@@ -53,14 +53,15 @@ if __name__ == "__main__":
     weights_hidden, bias_hidden, weights_output, bias_output = initializeWeights()
 
     # Training loop
+    totalError = 0
     learning_rate = 0.1
-    epochs = 5000
+    epochs = 1
     for i in range(epochs):
-        weights_hidden, bias_hidden, weights_output, bias_output, error = backpropagation(
-            inputs, target, weights_hidden, bias_hidden, weights_output, bias_output, learning_rate
-        )
-        if i % 500 == 0:
-            print(f"Epoch {i}, Error: {error[0]:.4f}")
+        for i in range()
+            weights_hidden, bias_hidden, weights_output, bias_output, error = backpropagation(
+                inputs, target, weights_hidden, bias_hidden, weights_output, bias_output, learning_rate
+            )
+            totalError += error
     
     # Final output
     _, network_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
