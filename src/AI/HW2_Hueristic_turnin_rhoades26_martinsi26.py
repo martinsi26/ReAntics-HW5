@@ -8,8 +8,10 @@ from Ant import UNIT_STATS
 from Move import Move
 from GameState import *
 from AIPlayerUtils import *
+import csv
+import numpy as np
 
-
+TRAIN = False
 ##
 #SearchNode
 #Description: Represents a node in the search tree for AI decision making
@@ -75,6 +77,11 @@ class AIPlayer(Player):
     ##
     def __init__(self, inputPlayerId):
         super(AIPlayer,self).__init__(inputPlayerId, "Siggy_HW5_rhoades26_martinsi26")
+    
+    def getDist(self, src : tuple[int, int], dest : tuple[int, int]) -> int:
+        distx = abs(src[0] - dest[0])
+        disty = abs(src[1] - dest[1])
+        return distx + disty
     
     def utility(self, gameState):
         # Simple utility function - evaluates game state from 0 to 1
@@ -149,8 +156,11 @@ class AIPlayer(Player):
 
         tunnel = foodPoint  # This is the tunnel
         
+        carrying = 0
+        
         for ant in filter(lambda ant: ant.type == 1, my_inventory.ants): # For each worker
             if ant.carrying:
+                carrying += 1
                 # Check distance to both anthill and tunnel for drop-off
                 dist_to_anthill = stepsToReach(gameState, ant.coords, anthill.coords)
                 dist_to_tunnel = stepsToReach(gameState, ant.coords, tunnel.coords)
@@ -198,6 +208,70 @@ class AIPlayer(Player):
         inverseScore = 1 - score
         movesLeft = baseEstimate * 2 * inverseScore
         
+        state = []
+        state.append(my_food / 12)
+        state.append(enemy_food / 12)
+        state.append(my_queen.health / 10)
+        state.append(enemy_queen.health / 10)
+        state.append(my_ant_count / 81)
+        state.append(enemy_ant_count / 81)
+        state.append(my_attacker_count / 81)
+        state.append(enemy_attacker_count / 81)
+        state.append(carrying / 81)
+        state.append(score)
+        with open("data.csv", "a", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(state)
+        
+        return movesLeft
+    
+    def nnUtility(self, gameState):
+        baseEstimate = 30
+        data = np.load("weights.npz")
+        weights_hidden = data["weights_hidden"]
+        bias_hidden = data["bias_hidden"]
+        weights_output = data["weights_output"]
+        bias_output = data["bias_output"]
+        
+        my_inventory = gameState.inventories[gameState.whoseTurn]
+        enemy_inventory = gameState.inventories[1 - gameState.whoseTurn]
+        my_food = my_inventory.foodCount
+        enemy_food = enemy_inventory.foodCount
+        my_ant_count = len(my_inventory.ants)
+        enemy_ant_count = len(enemy_inventory.ants)
+        my_attacker_count = len(list(filter(lambda ant: ant.type in [2, 3, 4], my_inventory.ants)))
+        enemy_attacker_count = len(list(filter(lambda ant: ant.type in [2, 3, 4], enemy_inventory.ants)))
+        my_queen = my_inventory.getQueen()
+        enemy_queen = enemy_inventory.getQueen()
+        carrying = 0
+        
+        for ant in filter(lambda ant: ant.type == 1, my_inventory.ants): # For each worker
+            if ant.carrying:
+                carrying += 1
+        
+        state = []
+        state.append(my_food / 12)
+        state.append(enemy_food / 12)
+        state.append(my_queen.health)
+        state.append(enemy_queen.health)
+        state.append(my_ant_count / 81)
+        state.append(enemy_ant_count / 81)
+        state.append(my_attacker_count / 81)
+        state.append(enemy_attacker_count / 81)
+        state.append(carrying / 81)
+        
+        sigmoid = lambda x: 1 / (1 + np.exp(-x))
+        statenp = np.array(state)
+        
+        hidden = np.dot(statenp, weights_hidden.T) + bias_hidden
+        hidden_activation = sigmoid(hidden)
+        
+        output = np.dot(hidden_activation, weights_output.T) + bias_output
+        score = sigmoid(output)
+        
+        
+        inverseScore = 1 - score
+        movesLeft = baseEstimate * 2 * inverseScore
         return movesLeft
     
     def create_search_node(self, move, state, depth=1, parent=None):
@@ -206,7 +280,7 @@ class AIPlayer(Player):
         #Automatically calculates evaluation using this player's utility function.
         
         node = SearchNode(move, state, depth, parent)
-        node.calculate_evaluation(self.utility)
+        node.calculate_evaluation(self.utility if TRAIN else self.nnUtility)
         return node
     
     def bestMove(self, nodes):
@@ -334,7 +408,7 @@ class AIPlayer(Player):
         # b. Create a root node from the current state
         # Root node has no move, depth 0, and no parent
         root_node = SearchNode(None, currentState, 0, None)
-        root_node.calculate_evaluation(self.utility)  # Calculate evaluation for root
+        root_node.calculate_evaluation(self.utility if TRAIN else self.nnUtility)  # Calculate evaluation for root
         frontierNodes.append(root_node)
         count = 0
         # c. Perform the search loop

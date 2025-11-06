@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+import csv
 
 ##
 #initializeWeights
@@ -10,8 +10,8 @@ import numpy as np
 #Return: All of the weights and baises for the nodes
 ##
 def initializeWeights():
-    num_inputs = 4
-    num_hidden = 8
+    num_inputs = 9
+    num_hidden = 18
     num_outputs = 1
 
     weights_hidden = np.random.uniform(-1, 1, (num_hidden, num_inputs))
@@ -106,41 +106,52 @@ def backpropagation(inputs, target, weights_hidden, bias_hidden, weights_output,
 
 # --- Main test ---
 if __name__ == "__main__":
-    examples = [
-        ([0, 0, 0, 0], [0]),
-        ([0, 0, 0, 1], [1]),
-        ([0, 0, 1, 0], [0]),
-        ([0, 0, 1, 1], [1]),
-        ([0, 1, 0, 0], [0]),
-        ([0, 1, 0, 1], [1]),
-        ([0, 1, 1, 0], [0]),
-        ([0, 1, 1, 1], [1]),
-        ([1, 0, 0, 0], [1]),
-        ([1, 0, 0, 1], [1]),
-        ([1, 0, 1, 0], [1]),
-        ([1, 0, 1, 1], [1]),
-        ([1, 1, 0, 0], [0]),
-        ([1, 1, 0, 1], [0]),
-        ([1, 1, 1, 0], [0]),
-        ([1, 1, 1, 1], [1])
-    ]
+    # examples = [
+    #     ([0, 0, 0, 0], [0]),
+    #     ([0, 0, 0, 1], [1]),
+    #     ([0, 0, 1, 0], [0]),
+    #     ([0, 0, 1, 1], [1]),
+    #     ([0, 1, 0, 0], [0]),
+    #     ([0, 1, 0, 1], [1]),
+    #     ([0, 1, 1, 0], [0]),
+    #     ([0, 1, 1, 1], [1]),
+    #     ([1, 0, 0, 0], [1]),
+    #     ([1, 0, 0, 1], [1]),
+    #     ([1, 0, 1, 0], [1]),
+    #     ([1, 0, 1, 1], [1]),
+    #     ([1, 1, 0, 0], [0]),
+    #     ([1, 1, 0, 1], [0]),
+    #     ([1, 1, 1, 0], [0]),
+    #     ([1, 1, 1, 1], [1])
+    # ]
+    firstcols = []
+    lastcol = []
+
+    with open("data.csv", "r", newline="") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            # convert all values to float (optional)
+            values = [float(x) for x in row]
+            firstcols.append(values[:-1])
+            lastcol.append(values[-1])
+
+    data = list(zip(firstcols, lastcol))
     
     # inputs = np.array([0.5, -0.3, 0.8, 0.1]) # example input
     # target = np.array([1.0]) # example target output
 
     # Initialize Network
     weights_hidden, bias_hidden, weights_output, bias_output = initializeWeights()
-
     # Training loop
     totalError = 0
-    learning_rate = 0.1
+    learning_rate = 0.01
     epoch = 0
     average_error = 1.0
 
     # Train until we reach a 0.05 average error for an epoch
-    while average_error > 0.05:
+    while average_error > 0.05 or epoch <= len(data) / 32:
         # Radnomly pick 10 samples per epoch
-        selected = random.sample(examples, 10)
+        selected = random.sample(data, 32)
         inputs_array = np.array([i for i, _ in selected])
         targets_array = np.array([t for _, t in selected])
 
@@ -158,7 +169,13 @@ if __name__ == "__main__":
         average_error = total_error / 10
         epoch += 1
         print(f"Epoch {epoch} - Average Error: {average_error:.4f}")
+        
     
+    np.savez("weights",
+            weights_hidden=weights_hidden,
+            bias_hidden=bias_hidden,
+            weights_output=weights_output,
+            bias_output=bias_output)
     # # Final output
     # _, network_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
     # print("\n=== Final Network Output ===")
