@@ -1,4 +1,5 @@
-import random
+#Resources: https://www.geeksforgeeks.org/machine-learning/backpropagation-in-neural-network/
+#I untilized this website to help me with my backpropagation function
 import numpy as np
 
 
