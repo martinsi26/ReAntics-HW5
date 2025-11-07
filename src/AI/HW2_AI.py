@@ -10,6 +10,11 @@ from Move import Move
 from GameState import *
 from AIPlayerUtils import *
 import heapq
+import csv
+import numpy as np
+
+TRAIN = False
+USENN = True
 
 
 ##
@@ -31,7 +36,7 @@ class AIPlayer(Player):
     #   cpy           - whether the player is a copy (when playing itself)
     ##
     def __init__(self, inputPlayerId):
-        super(AIPlayer,self).__init__(inputPlayerId, "HW2_AI")
+        super(AIPlayer,self).__init__(inputPlayerId, "Axa_HW5_AI_rhoades26_martinsi26")
     
     ##
     #getPlacement
@@ -107,7 +112,7 @@ class AIPlayer(Player):
         myWorkers = getAntList(currentState, currentState.whoseTurn, (WORKER,))
         preCarrying = {worker.UniqueID: worker.carrying for worker in myWorkers}
         
-        rootNode = Node(None, currentState, 0, self.utility(currentState, preCarrying), None)
+        rootNode = Node(None, currentState, 0, self.utility(currentState, preCarrying) if not USENN else self.NNUtility(currentState, preCarrying), None)
         frontierNodes.append(rootNode)
 
         while frontierNodes:
@@ -213,10 +218,16 @@ class AIPlayer(Player):
 
         for move in moves:
             gameState = getNextState(node.gameState, move)
-            childNode = Node(move, gameState, node.depth+1, self.utility(gameState, preCarrying), node)
+            childNode = Node(move, gameState, node.depth+1, self.utility(gameState, preCarrying) if not USENN else self.NNUtility(gameState, preCarrying), node)
             nodeList.append(childNode)
         
         return nodeList
+    
+
+    def getDist(self, src : tuple[int, int], dest : tuple[int, int]) -> int:
+        distx = abs(src[0] - dest[0])
+        disty = abs(src[1] - dest[1])
+        return distx + disty
 
     ##
     #utility
@@ -253,6 +264,8 @@ class AIPlayer(Player):
             evaluation += 0.05  # small reward for 1-2 workers
 
         # ----- Worker movement / pickup / delivery -----
+        worker_efficiency = 0.0
+        e_params = [0.08, 0.12, 10, 0.03, 0.05, 0.2]
         if myWorkers and foods and homeSpots:            
             worker_efficiency = 0.0
             
@@ -262,24 +275,89 @@ class AIPlayer(Player):
 
                 # Pickup / delivery incentive
                 if not wasCarrying and worker.carrying:  # just picked up food
-                    worker_efficiency += 0.08
+                    worker_efficiency += e_params[0]
                 elif wasCarrying and not worker.carrying:  # just delivered food
-                    worker_efficiency += 0.12
+                    worker_efficiency += e_params[1]
                 else:
                     # Reward moving toward target
                     if not worker.carrying:  # heading to food
-                        closestFood = min(foods, key=lambda f: stepsToReach(currentState, worker.coords, f.coords))
-                        dist = stepsToReach(currentState, worker.coords, closestFood.coords)
-                        worker_efficiency += max(0, (10 - dist) / 10 * 0.03)
+                        closestFood = min(foods, key=lambda f: self.getDist(worker.coords, f.coords))
+                        dist = self.getDist(worker.coords, closestFood.coords)
+                        worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[3])
                     else:  # heading to home
-                        closestHome = min(homeSpots, key=lambda f: stepsToReach(currentState, worker.coords, f.coords))
-                        dist = stepsToReach(currentState, worker.coords, closestHome.coords)
-                        worker_efficiency += max(0, (10 - dist) / 10 * 0.05)
+                        closestHome = min(homeSpots, key=lambda f: self.getDist(worker.coords, f.coords))
+                        dist = self.getDist(worker.coords, closestHome.coords)
+                        worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[4])
             # average efficiency
             if numWorkers > 0:
-                evaluation += min(0.2, worker_efficiency / numWorkers * 0.2)
+                evaluation += min(e_params[5], worker_efficiency / numWorkers * e_params[5])
         
+        if TRAIN:
+            state = []
+            state.append(myInv.foodCount)
+            state.append(numWorkers)
+            state.append(min(0.2,(worker_efficiency / numWorkers) if not numWorkers == 0 else 0))
+            state.append(max(0.0, min(1.0, evaluation)))
+            with open("data.csv", "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(state)
+
         return max(0.0, min(1.0, evaluation))
+    
+    def NNUtility(self, currentState, preCarrying):
+        data = np.load("weights.npz")
+        weights_hidden = data["weights_hidden"]
+        bias_hidden = data["bias_hidden"]
+        weights_output = data["weights_output"]
+        bias_output = data["bias_output"]
+        
+        myWorkers = getAntList(currentState, currentState.whoseTurn, (WORKER,))
+        myInv = getCurrPlayerInventory(currentState)
+        numWorkers = len(myWorkers)
+        foods = getConstrList(currentState, None, (FOOD,))
+        homeSpots = getConstrList(currentState, currentState.whoseTurn, (TUNNEL, ANTHILL))
+
+        worker_efficiency = 0.0
+        e_params = [0.08, 0.12, 10, 0.03, 0.05, 0.2]
+        if myWorkers and foods and homeSpots:            
+            worker_efficiency = 0.0
+            
+            for worker in myWorkers:
+                workerID = worker.UniqueID
+                wasCarrying = preCarrying.get(workerID, False)
+
+                # Pickup / delivery incentive
+                if not wasCarrying and worker.carrying:  # just picked up food
+                    worker_efficiency += e_params[0]
+                elif wasCarrying and not worker.carrying:  # just delivered food
+                    worker_efficiency += e_params[1]
+                else:
+                    # Reward moving toward target
+                    if not worker.carrying:  # heading to food
+                        closestFood = min(foods, key=lambda f: self.getDist(worker.coords, f.coords))
+                        dist = self.getDist(worker.coords, closestFood.coords)
+                        worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[3])
+                    else:  # heading to home
+                        closestHome = min(homeSpots, key=lambda f: self.getDist(worker.coords, f.coords))
+                        dist = self.getDist(worker.coords, closestHome.coords)
+                        worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[4])
+        efficiency = (worker_efficiency / numWorkers) if not numWorkers == 0 else 0
+        
+        state = []
+        state.append(myInv.foodCount)
+        state.append(numWorkers)
+        state.append(efficiency)
+        
+        
+        sigmoid = lambda x: 1 / (1 + np.exp(-x))
+        statenp = np.array(state)
+        
+        hidden = np.dot(statenp, weights_hidden.T) + bias_hidden
+        hidden_activation = sigmoid(hidden)
+        
+        output = np.dot(hidden_activation, weights_output.T) + bias_output
+        score = sigmoid(output)
+        return score
 
 
 class Node:
@@ -319,7 +397,7 @@ class TestMethods(unittest.TestCase):
         state = GameState(board, [myInv, enemyInv, neutralInv], 0, 0)
         
         agent = AIPlayer(0)
-        result = agent.utility(state, {})
+        result = agent.utility(state, {}) if not USENN else agent.NNUtility(state, {})
         
         self.assertIsInstance(result, (int, float))
         self.assertLessEqual(result, 1.0)  
@@ -340,7 +418,7 @@ class TestMethods(unittest.TestCase):
         state = GameState(board, [myInv, enemyInv, neutralInv], 0, 0)
         
         agent = AIPlayer(0)
-        result = agent.utility(state, {})
+        result = agent.utility(state, {}) if not USENN else agent.NNUtility(state, {})
         
         self.assertLessEqual(result, 1.0)  # Should return 1.0 for win condition so result is below that
         
@@ -360,7 +438,7 @@ class TestMethods(unittest.TestCase):
         state = GameState(board, [myInv, enemyInv, neutralInv], 0, 0)
         
         agent = AIPlayer(0)
-        result = agent.utility(state, {})
+        result = agent.utility(state, {}) if not USENN else agent.NNUtility(state, {})
         
         # Should be high (bad) due to no workers penalty
         self.assertLess(result, 0.5)  # Heavy penalty should make this high

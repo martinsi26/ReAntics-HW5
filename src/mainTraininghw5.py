@@ -4,6 +4,10 @@ import numpy as np
 import csv
 import random
 
+NUM_INPUTS = 3
+NUM_HIDDEN= 6
+NUM_OUTPUTS = 1
+
 
 ##
 #initializeWeights
@@ -13,9 +17,9 @@ import random
 #Return: All of the weights and baises for the nodes
 ##
 def initializeWeights():
-    num_inputs = 9
-    num_hidden = 18
-    num_outputs = 1
+    num_inputs = NUM_INPUTS
+    num_hidden = NUM_HIDDEN
+    num_outputs = NUM_OUTPUTS
 
     weights_hidden = np.random.uniform(-1, 1, (num_hidden, num_inputs))
     bias_hidden = np.random.uniform(-1, 1, (num_hidden,))
@@ -151,10 +155,10 @@ if __name__ == "__main__":
     epoch = 0
     average_error = 1.0
 
-    # Train until we reach a 0.05 average error for an epoch
+    # Train until we reach a 0.025 average error for an epoch
     while average_error > 0.05 or epoch <= len(data) / 32:
         # Radnomly pick 10 samples per epoch
-        selected = random.sample(data, 32)
+        selected = random.sample(data, 64)
         inputs_array = np.array([i for i, _ in selected])
         targets_array = np.array([t for _, t in selected])
 
@@ -168,10 +172,19 @@ if __name__ == "__main__":
             )
             total_error += np.abs(error[0])
 
+        # Adam optimization
+        if random.randint(0,10000) == 0:
+            rand = random.randint(0, len(weights_hidden) - 1)
+            weights_hidden[rand] = 0.0
+        elif random.randint(0,10000) == 0:
+            rand = random.randint(0, len(weights_output) - 1)
+            weights_output[rand] = 0.0
+
         # Compute average error for the epoch
         average_error = total_error / 10
         epoch += 1
-        print(f"Epoch {epoch} - Average Error: {average_error:.4f}")
+        if epoch % 1000 == 0:
+            print(f"Epoch {epoch} - Average Error: {average_error:.4f}")
         
     
     np.savez("weights",

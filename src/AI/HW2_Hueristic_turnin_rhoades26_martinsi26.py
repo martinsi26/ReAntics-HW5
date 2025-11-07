@@ -12,6 +12,7 @@ import csv
 import numpy as np
 
 TRAIN = False
+SAVE = False
 ##
 #SearchNode
 #Description: Represents a node in the search tree for AI decision making
@@ -208,20 +209,21 @@ class AIPlayer(Player):
         inverseScore = 1 - score
         movesLeft = baseEstimate * 2 * inverseScore
         
-        state = []
-        state.append(my_food / 12)
-        state.append(enemy_food / 12)
-        state.append(my_queen.health / 10)
-        state.append(enemy_queen.health / 10)
-        state.append(my_ant_count / 81)
-        state.append(enemy_ant_count / 81)
-        state.append(my_attacker_count / 81)
-        state.append(enemy_attacker_count / 81)
-        state.append(carrying / 81)
-        state.append(score)
-        with open("data.csv", "a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(state)
+        if SAVE:
+            state = []
+            state.append(my_food / 12)
+            state.append(enemy_food / 12)
+            state.append(my_queen.health / 10)
+            state.append(enemy_queen.health / 10)
+            state.append(my_ant_count / 81)
+            state.append(enemy_ant_count / 81)
+            state.append(my_attacker_count / 81)
+            state.append(enemy_attacker_count / 81)
+            state.append(carrying / 81)
+            state.append(score)
+            with open("data.csv", "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(state)
         
         return movesLeft
     
