@@ -3,9 +3,8 @@
 import numpy as np
 import csv
 import random
+import glob
 
-NUM_INPUTS = 3
-NUM_HIDDEN= 6
 NUM_OUTPUTS = 1
 
 
@@ -16,15 +15,19 @@ NUM_OUTPUTS = 1
 #
 #Return: All of the weights and baises for the nodes
 ##
-def initializeWeights():
-    num_inputs = NUM_INPUTS
-    num_hidden = NUM_HIDDEN
+def initializeWeights(num_inputs, num_hidden):
     num_outputs = NUM_OUTPUTS
 
-    weights_hidden = np.random.uniform(-1, 1, (num_hidden, num_inputs))
-    bias_hidden = np.random.uniform(-1, 1, (num_hidden,))
-    weights_output = np.random.uniform(-1, 1, (num_outputs, num_hidden))
-    bias_output = np.random.uniform(-1, 1, (num_outputs,))
+
+    # weights_hidden = np.random.uniform(-1, 1, (num_hidden, num_inputs))
+    # bias_hidden = np.random.uniform(-1, 1, (num_hidden,))
+    # weights_output = np.random.uniform(-1, 1, (num_outputs, num_hidden))
+    # bias_output = np.random.uniform(-1, 1, (num_outputs,))
+
+    weights_hidden = np.random.randn(num_hidden, num_inputs) * np.sqrt(2 / num_inputs)
+    bias_hidden = np.zeros((num_hidden,))
+    weights_output = np.random.randn(num_outputs, num_hidden) * np.sqrt(2 / num_hidden)
+    bias_output = np.zeros((num_outputs,))
 
     return weights_hidden, bias_hidden, weights_output, bias_output
 
@@ -41,6 +44,9 @@ def initializeWeights():
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def relu(x):
+    return np.maximum(0, x)
+
 ##
 #sigmoid_derivative
 #
@@ -53,6 +59,9 @@ def sigmoid(x):
 ##
 def sigmoid_derivative(x):
     return x * (1 - x)
+
+def relu_derivative(x):
+    return (x > 0).astype(float)
 
 ##
 #feedforward
@@ -131,68 +140,79 @@ if __name__ == "__main__":
     #     ([1, 1, 1, 0], [0]),
     #     ([1, 1, 1, 1], [1])
     # ]
-    firstcols = []
-    lastcol = []
 
-    with open("data.csv", "r", newline="") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            # convert all values to float (optional)
-            values = [float(x) for x in row]
-            firstcols.append(values[:-1])
-            lastcol.append(values[-1])
+    counter = 0
+    weights_hidden, bias_hidden, weights_output, bias_output = None, None, None, None
+    for file in sorted(glob.glob("data_part*.csv")):
+        print(f"On file {file}")
+        counter += 1
 
-    data = list(zip(firstcols, lastcol))
-    
-    # inputs = np.array([0.5, -0.3, 0.8, 0.1]) # example input
-    # target = np.array([1.0]) # example target output
+        firstcols = []
+        lastcol = []
 
-    # Initialize Network
-    weights_hidden, bias_hidden, weights_output, bias_output = initializeWeights()
-    # Training loop
-    totalError = 0
-    learning_rate = 0.01
-    epoch = 0
-    average_error = 1.0
+        with open(file, "r", newline="") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                # convert all values to float (optional)
+                values = [float(x) for x in row]
+                firstcols.append(values[:-1])
+                lastcol.append(values[-1])
 
-    # Train until we reach a 0.025 average error for an epoch
-    while average_error > 0.05 or epoch <= len(data) / 32:
-        # Radnomly pick 10 samples per epoch
-        selected = random.sample(data, 64)
-        inputs_array = np.array([i for i, _ in selected])
-        targets_array = np.array([t for _, t in selected])
-
-        # Reset error accumulator
-        total_error = 0.0
-
-        # Train on 10 samples
-        for inputs, target in zip(inputs_array, targets_array):
-            weights_hidden, bias_hidden, weights_output, bias_output, error = backpropagation(
-                inputs, target, weights_hidden, bias_hidden, weights_output, bias_output, learning_rate
-            )
-            total_error += np.abs(error[0])
-
-        # Adam optimization
-        if random.randint(0,10000) == 0:
-            rand = random.randint(0, len(weights_hidden) - 1)
-            weights_hidden[rand] = 0.0
-        elif random.randint(0,10000) == 0:
-            rand = random.randint(0, len(weights_output) - 1)
-            weights_output[rand] = 0.0
-
-        # Compute average error for the epoch
-        average_error = total_error / 10
-        epoch += 1
-        if epoch % 1000 == 0:
-            print(f"Epoch {epoch} - Average Error: {average_error:.4f}")
+        data = list(zip(firstcols, lastcol))
         
-    
+        # inputs = np.array([0.5, -0.3, 0.8, 0.1]) # example input
+        # target = np.array([1.0]) # example target output
+
+        # Initialize Network
+        inputs = len(firstcols[0])
+        print(f"{inputs} parameters, {len(firstcols)}")
+        if counter == 1:
+            weights_hidden, bias_hidden, weights_output, bias_output = initializeWeights(inputs, int(inputs / 4))
+        # Training loop
+        totalError = 0
+        learning_rate = 0.1
+        batch = 0
+        average_error = 1.0
+        batch_size = 64
+
+        # Train until we reach a 0.025 average error for an batch
+        while average_error > 0.2 or batch <= len(data) / batch_size:
+            # Radnomly pick 10 samples per batch
+            selected = random.sample(data, batch_size)
+            inputs_array = np.array([i for i, _ in selected])
+            targets_array = np.array([t for _, t in selected])
+
+            # Reset error accumulator
+            total_error = 0.0
+
+            # Train on 10 samples
+            for inputs, target in zip(inputs_array, targets_array):
+                weights_hidden, bias_hidden, weights_output, bias_output, error = backpropagation(
+                    inputs, target, weights_hidden, bias_hidden, weights_output, bias_output, learning_rate
+                )
+                total_error += np.abs(error[0])
+
+            # Adam optimization
+            if random.randint(0,1000) == 0:
+                rand = random.randint(0, len(weights_hidden) - 1)
+                weights_hidden[rand] = 0.0
+            elif random.randint(0,1000) == 0:
+                rand = random.randint(0, len(weights_output) - 1)
+                weights_output[rand] = 0.0
+
+            # Compute average error for the batch
+            average_error = total_error / 10
+            batch += 1
+            if batch % 10 == 0:
+                print(f"Batch {batch} - Average Error: {average_error:.4f}")
+            
+        
     np.savez("weights",
             weights_hidden=weights_hidden,
             bias_hidden=bias_hidden,
             weights_output=weights_output,
             bias_output=bias_output)
-    # # Final output
-    # _, network_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
-    # print("\n=== Final Network Output ===")
-    # print(network_output)
+        # # Final output
+        # _, network_output = feedforward(inputs, weights_hidden, bias_hidden, weights_output, bias_output)
+        # print("\n=== Final Network Output ===")
+        # print(network_output)
