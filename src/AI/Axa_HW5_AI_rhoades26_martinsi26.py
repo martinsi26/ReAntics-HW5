@@ -281,12 +281,12 @@ class AIPlayer(Player):
                 else:
                     # Reward moving toward target
                     if not worker.carrying:  # heading to food
-                        closestFood = min(foods, key=lambda f: self.getDist(worker.coords, f.coords))
-                        dist = self.getDist(worker.coords, closestFood.coords)
+                        closestFood = min(foods, key=lambda f: stepsToReach(currentState, worker.coords, f.coords))
+                        dist = stepsToReach(currentState,worker.coords, closestFood.coords)
                         worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[3])
                     else:  # heading to home
-                        closestHome = min(homeSpots, key=lambda f: self.getDist(worker.coords, f.coords))
-                        dist = self.getDist(worker.coords, closestHome.coords)
+                        closestHome = min(homeSpots, key=lambda f: stepsToReach(currentState,worker.coords, f.coords))
+                        dist = stepsToReach(currentState,worker.coords, closestHome.coords)
                         worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[4])
             # average efficiency
             if numWorkers > 0:
@@ -334,12 +334,12 @@ class AIPlayer(Player):
                 else:
                     # Reward moving toward target
                     if not worker.carrying:  # heading to food
-                        closestFood = min(foods, key=lambda f: self.getDist(worker.coords, f.coords))
-                        dist = self.getDist(worker.coords, closestFood.coords)
+                        closestFood = min(foods, key=lambda f: stepsToReach(currentState,worker.coords, f.coords))
+                        dist = stepsToReach(currentState,worker.coords, closestFood.coords)
                         worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[3])
                     else:  # heading to home
-                        closestHome = min(homeSpots, key=lambda f: self.getDist(worker.coords, f.coords))
-                        dist = self.getDist(worker.coords, closestHome.coords)
+                        closestHome = min(homeSpots, key=lambda f: stepsToReach(currentState,worker.coords, f.coords))
+                        dist = stepsToReach(currentState,worker.coords, closestHome.coords)
                         worker_efficiency += max(0, (e_params[2] - dist) / e_params[2] * e_params[4])
         efficiency = (worker_efficiency / numWorkers) if not numWorkers == 0 else 0
         

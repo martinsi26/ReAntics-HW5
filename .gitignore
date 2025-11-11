@@ -3,8 +3,9 @@ bin
 include
 lib
 lib64
-src/data.csv
-src/weights.npz
+src/data*
+src/weights*
+!src/weights.npz
 bin/**
 include/**
 lib/**
