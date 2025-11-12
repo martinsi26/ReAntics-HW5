@@ -306,10 +306,16 @@ class AIPlayer(Player):
     
     def NNUtility(self, currentState, preCarrying):
         data = np.load("weights.npz")
-        weights_hidden = data["weights_hidden"]
-        bias_hidden = data["bias_hidden"]
-        weights_output = data["weights_output"]
-        bias_output = data["bias_output"]
+        weights_hidden = np.array([[-1.27495966e-02,  2.18240504e-05, -1.45309832e-05],
+                          [-2.40179296e-03, -3.05512731e-04, -4.89950456e-06], 
+                          [ 1.46120892e-03,  1.45799356e-04,  5.19120793e-06], 
+                          [-8.28952786e-03, -8.56302852e-04, -1.80428782e-05], 
+                          [ 1.03222894e-02,  3.80026223e-04,  1.11371105e-05], 
+                          [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00]])
+        bias_hidden = np.array([ 5.83562601e-03, 3.42365833e-02, -6.71551589e-02, 7.30003007e-02, -3.63094568e-02, -1.32480150e-01 ])
+        weights_output = np.array([ -3.78662728e-01, -1.09444535e+00, 1.57816117e+00, -1.85760157e+00, 1.00106711e+00, 2.72224529e+00 ])
+        bias_output = np.array([ -1.08065326e-01 ])
+
         
         myWorkers = getAntList(currentState, currentState.whoseTurn, (WORKER,))
         myInv = getCurrPlayerInventory(currentState)
