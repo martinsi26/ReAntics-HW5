@@ -53,44 +53,42 @@ class AIPlayer(Player):
     #Return: The coordinates of where the construction is to be placed
     ##
     def getPlacement(self, currentState):
-        numToPlace = 0
-        #implemented by students to return their next move
-        if currentState.phase == SETUP_PHASE_1:    #stuff on my side
-            numToPlace = 11
-            moves = []
-            for i in range(0, numToPlace):
-                move = None
-                while move == None:
-                    #Choose any x location
-                    x = random.randint(0, 9)
-                    #Choose any y location on your side of the board
-                    y = random.randint(0, 3)
-                    #Set the move if this space is empty
-                    if currentState.board[x][y].constr == None and (x, y) not in moves:
-                        move = (x, y)
-                        #Just need to make the space non-empty. So I threw whatever I felt like in there.
-                        currentState.board[x][y].constr == True
-                moves.append(move)
-            return moves
-        elif currentState.phase == SETUP_PHASE_2:   #stuff on foe's side
-            numToPlace = 2
-            moves = []
-            for i in range(0, numToPlace):
-                move = None
-                while move == None:
-                    #Choose any x location
-                    x = random.randint(0, 9)
-                    #Choose any y location on enemy side of the board
-                    y = random.randint(6, 9)
-                    #Set the move if this space is empty
-                    if currentState.board[x][y].constr == None and (x, y) not in moves:
-                        move = (x, y)
-                        #Just need to make the space non-empty. So I threw whatever I felt like in there.
-                        currentState.board[x][y].constr == True
-                moves.append(move)
-            return moves
-        else:
-            return [(0, 0)]
+        #Just put in my previous method for starting the game, can change to better strategy
+        self.myFood = None
+        self.myTunnel = None
+
+        if currentState.phase == SETUP_PHASE_1:
+            return [
+                (1, 1), (8, 1),  # Anthill and hive
+                #Make a Grass wall
+                (0, 3), (1, 3), (2, 3), (3, 3),  #Grass 
+                (4, 3), (5, 3), (6, 3), #Grass
+                (8, 3), (9, 3) # Grass
+            ]
+        #Placing the enemies food (In the corners/randomly far away from their anthill)
+        elif currentState.phase == SETUP_PHASE_2:
+            #The places the method will choose and append to return
+            foodSpots = []
+            #Corner coordinates
+            corners = [(0, 9), (0, 6), (9, 6), (9, 9)]
+
+            #Go through corners, make sure its legal and add to the return list
+            for coord in corners:
+                if legalCoord(coord) and getConstrAt(currentState, coord) is None:
+                    foodSpots.append(coord)
+                #If you have both spots, break and go to return
+                if len(foodSpots) == 2:
+                    break
+            #If one or more of the corners are covered pick a random spot
+            while len(foodSpots) < 2:
+                coord = (random.randint(0, 9), random.randint(6, 9))
+                if legalCoord(coord) and getConstrAt(currentState, coord) is None and coord not in foodSpots:
+                    foodSpots.append(coord)
+
+            #Return final list of enemy food placement
+            return foodSpots
+
+        return None
     
     ##
     #getMove
